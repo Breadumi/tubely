@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -48,8 +49,18 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	mediaType := fileHeader.Header.Get("Content-Type")
-	mediaType = strings.Split(mediaType, "/")[1]
+	mediaType, _, err := mime.ParseMediaType(fileHeader.Header.Get("Content-Type"))
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Malformed Content-Type header", err)
+		return
+	}
+
+	if mediaType != "image/jpeg" && mediaType != "image/png" {
+		respondWithError(w, http.StatusBadRequest, "Content-Type must be image/jpeg or image/png", err)
+		return
+	}
+
+	mediaType = strings.Split(mediaType, "/")[1] // take only the subtype
 
 	dbVideo, err := cfg.db.GetVideo(videoID)
 	if err != nil {
