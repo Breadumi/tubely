@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"mime"
@@ -72,7 +74,14 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	path := "./" + filepath.Join(cfg.assetsRoot, videoID.String()+"."+mediaType)
+	b := make([]byte, 32)
+	_, err = rand.Read(b)
+	if err != nil {
+		fmt.Printf("Failed random number generation: %s\n", err)
+	}
+	filename := base64.RawURLEncoding.EncodeToString(b)
+
+	path := "./" + filepath.Join(cfg.assetsRoot, filename+"."+mediaType)
 	err = os.MkdirAll(cfg.assetsRoot, os.ModePerm)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create directory", err)
@@ -90,7 +99,7 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	thumbnailURL := "http://localhost:" + cfg.port + "/assets/" + videoID.String() + "." + mediaType
+	thumbnailURL := "http://localhost:" + cfg.port + "/assets/" + filename + "." + mediaType
 
 	dbVideo.ThumbnailURL = &thumbnailURL
 
