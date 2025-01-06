@@ -64,14 +64,18 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	tmpFile, err := os.CreateTemp("", "tubely-upload.mp4")
+	tmpFile, err := os.CreateTemp("", "tubely-upload.mp4") // create initial file for processing, overwritten later when processed
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create temporary file", err)
 		return
 	}
-	defer os.Remove("tubely-upload.mp4")
+	defer os.Remove(tmpFile.Name())
 	defer tmpFile.Close()
-	io.Copy(tmpFile, file)
+	_, err = io.Copy(tmpFile, file)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Could copy file", err)
+		return
+	}
 
 	tmpFile.Seek(0, io.SeekStart)
 
@@ -99,10 +103,24 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	fastStartFilePath, err := processVideoForFastStart(tmpFilePath)
+	fmt.Println("This is the the fast start error", err)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't process video to fast start", err)
+		return
+	}
+	tmpFileProcessed, err := os.Open(fastStartFilePath)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't open fast start processed video", err)
+		return
+	}
+	defer os.Remove(fastStartFilePath)
+	defer tmpFileProcessed.Close()
+
 	_, err = cfg.s3Client.PutObject(r.Context(), &s3.PutObjectInput{
 		Bucket:      aws.String(bucket),
 		Key:         aws.String(key),
-		Body:        tmpFile,
+		Body:        tmpFileProcessed,
 		ContentType: aws.String(mediaType),
 	})
 	if err != nil {

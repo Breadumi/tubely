@@ -13,7 +13,10 @@ func getVideoAspectRatio(filePath string) (string, error) {
 
 	var buffer bytes.Buffer
 	cmd.Stdout = &buffer
-	cmd.Run()
+	err := cmd.Run()
+	if err != nil {
+		return "", err
+	}
 
 	type Result struct {
 		Streams []struct {
