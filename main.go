@@ -75,7 +75,9 @@ func main() {
 		log.Fatal("S3_CF_DISTRO environment variable is not set")
 	}
 
-	awsConfig, err := config.LoadDefaultConfig(context.TODO())
+	awsConfig, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion(s3Region),
+	)
 	if err != nil {
 		log.Fatal("S3 Client could not be loaded")
 	}

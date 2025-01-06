@@ -81,7 +81,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 
 	b := make([]byte, 32)
 	rand.Read(b)
-	bucket := "tubely-87218934"
+	bucket := cfg.s3Bucket
 	key := hex.EncodeToString(b)
 
 	// create prefix for key
